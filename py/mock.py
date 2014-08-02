@@ -125,7 +125,8 @@ def command_parse(config_opts):
 
     # options
     parser.add_option("-r", "--root", action="store", type="string", dest="chroot",
-                      help="chroot name/config file name default: %default",
+                      help="chroot config file name or path. Taken as a path if it ends "
+                           "in .cfg, otherwise looked up in the configdir. default: %default",
                       default='default')
 
     parser.add_option("--offline", action="store_false", dest="online",
@@ -418,13 +419,21 @@ def main(ret):
     config_opts['config_paths'] = []
 
     # Read in the config files: default, and then user specified
-    for cfg in ( os.path.join(config_path, 'site-defaults.cfg'), '%s/%s.cfg' % (config_path, options.chroot)):
+    for cfgname in ['site-defaults', options.chroot]:
+        if cfgname.endswith('.cfg'):
+            # If the .cfg is explicitly specified we take the root arg to
+            # specify a path, rather than looking it up in the configdir.
+            cfg = cfgname
+        else:
+            # Undecorated chroot names are looked up from the configdir
+            cfg = os.path.join(config_path, cfgname) + ".cfg"
         if os.path.exists(cfg):
             config_opts['config_paths'].append(cfg)
             mockbuild.util.update_config_from_file(config_opts, cfg, uidManager)
         else:
             log.error("Could not find required config file: %s" % cfg)
             if options.chroot == "default": log.error("  Did you forget to specify the chroot to use with '-r'?")
+            if "/" in cfg: log.error("  If you're trying to specify a path, include the .cfg extension, e.g. -r ./target.cfg")
             sys.exit(1)
 
     # Read user specific config file
