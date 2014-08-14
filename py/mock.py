@@ -111,6 +111,10 @@ def command_parse(config_opts):
     parser.add_option("--remove", action="store_const", const="remove",
                       dest="mode",
                       help="remove packages using yum")
+    parser.add_option("--enablerepo", action="append",
+                      help="Enable a repository in the target file. Maybe specified multiple times.")
+    parser.add_option("--disablerepo", action="append",
+                      help="Disable a repository in the target file. Maybe specified multiple times.")
     parser.add_option("--orphanskill", action="store_const", const="orphanskill",
                       dest="mode",
                       help="Kill all processes using specified buildroot.")
@@ -523,6 +527,11 @@ def main(ret):
     # do whatever we're here to do
     log.info("mock.py version %s starting..." % __VERSION__)
     chroot = mockbuild.backend.Root(config_opts, uidManager)
+
+    if options.enablerepo is not None:
+        chroot.enablerepos(options.enablerepo)
+    if options.disablerepo is not None:
+        chroot.disablerepos(options.disablerepo)
 
     chroot.start("run")
 

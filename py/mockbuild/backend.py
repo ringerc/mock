@@ -143,6 +143,9 @@ class Root(object):
 
         self.extra_chroot_dirs = config['extra_chroot_dirs']
 
+        self.enabledrepos = []
+        self.disabledrepos = []
+
     # =============
     #  'Public' API
     # =============
@@ -918,6 +921,19 @@ class Root(object):
             self._callHooks('postbuild')
             self.finish("buildsrpm")
 
+    def enablerepos(self, repos):
+        if repos is not None:
+            self.enabledrepos.extend(repos)
+            for r in self.disabledrepos:
+                if r in repos:
+                    self.disabledrepos.remove(r)
+
+    def disablerepos(self, repos):
+        if repos is not None:
+            self.disabledrepos.extend(repos)
+            for r in self.enabledrepos:
+                if r in repos:
+                    self.enabledrepos.remove(r)
 
     # =============
     # 'Private' API
@@ -990,6 +1006,13 @@ class Root(object):
             if self.yum_builddep_opts:
                 for eachopt in self.yum_builddep_opts.split():
                     yumcmd.insert(1, '%s' % eachopt)
+        # Process options and flags
+        for r in self.enabledrepos:
+            yumcmd.append("--enablerepo")
+            yumcmd.append(r)
+        for r in self.disabledrepos:
+            yumcmd.append("--disablerepo")
+            yumcmd.append(r)
         yumcmd.extend(('--installroot', self.makeChrootPath()))
         if self.releasever:
             yumcmd.extend(('--releasever', self.releasever))
@@ -998,6 +1021,7 @@ class Root(object):
         yumcmd.extend(self.yum_common_opts)
         yumcmd.extend(cmd[cmdix:])
         self.root_log.debug(yumcmd)
+        # And run it
         output = ""
         self._nuke_rpm_db()
         try:
